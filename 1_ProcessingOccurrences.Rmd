@@ -25,7 +25,7 @@ data(worldMapEnv)
 
 ## Field data for Kenya collected by Runo lab
 ```{r}
-occ <- read.csv("Cuscuta_georeferenced.csv")
+occ <- read.csv("Data/Cuscuta_georeferenced.csv")
 cc <- subset(occ, Cuscuta.Species=="C. campestris")[,1:2]
 nrow(cc)
 cr <- subset(occ, Cuscuta.Species=="C. reflexa")[,1:2]
@@ -46,11 +46,11 @@ points(cr$Long, cr$Lat, col="red", pch=20)
 ```{r}
 # combine w/GBIF data
 #citation: GBIF.org (31 August 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.muwe3t
-gbif.ck <- read.csv("C.kilimanjari_GBIF.csv", header = T)
-gbif.ck <- gbif.ck %>% filter(decimalLatitude != "NA") %>% select(decimalLatitude, decimalLongitude)
-colnames(gbif.ck)<- c('Lat','Long')
+gbif.ck <- read.csv("Data/C.kilimanjari_GBIF_JM.csv", header = T)
+gbif.ck <- gbif.ck %>% select(Lat, Long)
 
 ck.all <- rbind(ck, gbif.ck)
+nrow(ck.all)
 
 map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
 points(ck.all$Long, ck.all$Lat, col="red", pch=20)
@@ -60,11 +60,11 @@ points(ck.all$Long, ck.all$Lat, col="red", pch=20)
 ```{r}
 # combine w/GBIF data
 #citation: GBIF.org (31 August 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.y8rtg4
-gbif.cc <- read.csv("C.campestris_GBIF.csv", header = T)
-gbif.cc <- gbif.cc %>% filter(decimalLatitude != "NA") %>% select(decimalLatitude, decimalLongitude)
-colnames(gbif.cc)<- c('Lat','Long')
+gbif.cc <- read.csv("Data/C.campestris_GBIF_JM.csv", header = T)
+gbif.cc <- gbif.cc %>% select(Lat,Long)
 
 cc.all <- rbind(cc, gbif.cc)
+nrow(cc.all)
 
 map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
 points(cc.all$Long, cc.all$Lat, col="red", pch=20)
