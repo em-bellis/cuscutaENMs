@@ -18,6 +18,7 @@ library(raster)
 library(maps)
 library(rgdal)
 library(rgbif)
+library(dplyr)
 data(worldMapEnv)
 ```
 
@@ -25,11 +26,11 @@ data(worldMapEnv)
 ## Field data for Kenya collected by Runo lab
 ```{r}
 occ <- read.csv("Cuscuta_georeferenced.csv")
-cc <- subset(occ, Cuscuta.Species=="C. campestris")
+cc <- subset(occ, Cuscuta.Species=="C. campestris")[,1:2]
 nrow(cc)
-cr <- subset(occ, Cuscuta.Species=="C. reflexa")
+cr <- subset(occ, Cuscuta.Species=="C. reflexa")[,1:2]
 nrow(cr)
-ck <- subset(occ, Cuscuta.Species=="C. kilimanjari")
+ck <- subset(occ, Cuscuta.Species=="C. kilimanjari")[,1:2]
 nrow(ck)
 ```
 
@@ -43,10 +44,28 @@ points(cr$Long, cr$Lat, col="red", pch=20)
 
 ## *C. kilimanjari*
 ```{r}
-## Get all occurrences 
-map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
-points(ck$Long, ck$Lat, col="red", pch=20)
+# combine w/GBIF data
+#citation: GBIF.org (31 August 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.muwe3t
+gbif.ck <- read.csv("C.kilimanjari_GBIF.csv", header = T)
+gbif.ck <- gbif.ck %>% filter(decimalLatitude != "NA") %>% select(decimalLatitude, decimalLongitude)
+colnames(gbif.ck)<- c('Lat','Long')
 
-# from GBIF
-occ_download_get()
+ck.all <- rbind(ck, gbif.ck)
+
+map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
+points(ck.all$Long, ck.all$Lat, col="red", pch=20)
+```
+
+## *C. campestris*
+```{r}
+# combine w/GBIF data
+#citation: GBIF.org (31 August 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.y8rtg4
+gbif.cc <- read.csv("C.campestris_GBIF.csv", header = T)
+gbif.cc <- gbif.cc %>% filter(decimalLatitude != "NA") %>% select(decimalLatitude, decimalLongitude)
+colnames(gbif.cc)<- c('Lat','Long')
+
+cc.all <- rbind(cc, gbif.cc)
+
+map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
+points(cc.all$Long, cc.all$Lat, col="red", pch=20)
 ```
