@@ -1,0 +1,58 @@
+---
+title: "Environmental Layers"
+author: "EBellis"
+date: "9/1/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Check for Correlation
+This is based on background points from C. kilimanjari
+
+```{r eval=T}
+library(Hmisc)
+library(raster)
+
+e <- extent(25,45,-10,15)
+```
+
+```{r eval=F}
+env1 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_01.tif', header=T)
+env1 <- crop(env1, e)
+
+env3 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_03.tif', header=T)
+env3 <- crop(env3, e)
+
+env5 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_05.tif', header=T)
+env5 <- crop(env5, e)
+
+env15 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_15.tif', header=T)
+env15 <- crop(env15, e)
+
+env17 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_17.tif', header=T)
+env17 <- crop(env17, e)
+
+env18 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_18.tif', header=T)
+env18 <- crop(env18, e)
+
+env <- stack(env1, env3, env5, env15, env17, env18)
+
+randoz <- read.table('Ckilimanjari.bg.txt', header=T)
+bioclims <- extract(env, randoz)
+write.table(bioclims, file='bioclims.txt',row.names=F, quote=F)
+```
+
+```{r}
+# correlations 
+tmp <- read.table("Data/bioclims.txt", header=T)
+pairs(tmp[,1:6], cex=0.05)
+rcorr(as.matrix(tmp))
+
+```
+
+
+## Methods Summary
+Species distribution models were based on five bioclimatic variables: annual mean temperature (bio1),  isothermality (bio3), precipitation seasonality (bio15), precipitation of the driest quarter (bio17), and precipitation of the warmest quarter (bio18). Four of the variables (bio1, bio3, bio15, and bio18) were previously reported as important variables for species distribution models for [*C. chinensis*] (https://bmcecol.biomedcentral.com/track/pdf/10.1186/s12898-020-00295-6) and the fifth (bio17) had high feature importance in prelimninary analyses. Bioclimatic data were obtained from the [CHELSA dataset](https://www.nature.com/articles/sdata2017122). All variables had Pearson's correlation coefficients less than 0.8 when assessed across the background extent of the study.     

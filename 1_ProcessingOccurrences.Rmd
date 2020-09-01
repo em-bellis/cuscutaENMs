@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Description 
-This R markdown document describes cleaning of occurrence data and generation of background points for *Cuscuta* species described in Masanga *et al.* (submitted).  
+This R markdown document describes cleaning of occurrence data and generation of background points for *Cuscuta* species described in Masanga *et al.* (submitted).
 
 ## Load libraries
 ```{r}
@@ -19,6 +19,7 @@ library(maps)
 library(rgdal)
 library(rgbif)
 library(dplyr)
+library(dismo)
 data(worldMapEnv)
 ```
 
@@ -27,19 +28,41 @@ data(worldMapEnv)
 ```{r}
 occ <- read.csv("Data/Cuscuta_georeferenced.csv")
 cc <- subset(occ, Cuscuta.Species=="C. campestris")[,1:2]
-nrow(cc)
 cr <- subset(occ, Cuscuta.Species=="C. reflexa")[,1:2]
-nrow(cr)
 ck <- subset(occ, Cuscuta.Species=="C. kilimanjari")[,1:2]
-nrow(ck)
 ```
 
 ## *C. reflexa*
 ```{r}
-## Get all occurrences 
 # no African occurrences in GBIF
+len.cr <- nrow(cr)
+
+## Sample background following https://rspatial.org/raster/sdm/3_sdm_absence-background.html#
+env <- raster("~/Desktop/Projects/StigaxSorghum/MacroecologyMS/env7.rs.tif")
+
+write.table(cr, file="Data/Creflexa.occ.txt", quote=F, row.names = F, col.names = T)
+
+coordinates(cr) <- ~Long+Lat
+projection(cr) <- CRS('+proj=longlat +datum=WGS84')
+
+# circles with a radius of 50 km
+x <- circles(cr, d=300000, lonlat=TRUE)
+pol <- polygons(x)
+
+# sample randomly from all circles
+samp1 <- spsample(pol, 1000, type='random', iter=25)
+
+# get unique cells
+cells <- cellFromXY(env, samp1)
+cells <- unique(cells)
+xy <- xyFromCell(env, cells)
+
 map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
+points(xy, cex=0.75, pch=20, col='blue')
 points(cr$Long, cr$Lat, col="red", pch=20)
+
+write.table(xy, file="Data/Creflexa.bg.txt", quote=F, row.names = F, col.names = T)
+
 ```
 
 ## *C. kilimanjari*
@@ -50,10 +73,32 @@ gbif.ck <- read.csv("Data/C.kilimanjari_GBIF_JM.csv", header = T)
 gbif.ck <- gbif.ck %>% select(Lat, Long)
 
 ck.all <- rbind(ck, gbif.ck)
-nrow(ck.all)
+write.table(ck.all, file="Data/Ckilimanjari.occ.txt", quote=F, row.names = F, col.names = T)
+
+len.ck <- nrow(ck.all)
+
+## Sample background
+coordinates(ck.all) <- ~Long+Lat
+projection(ck.all) <- CRS('+proj=longlat +datum=WGS84')
+
+# circles with a radius of 50 km
+x <- circles(ck.all, d=300000, lonlat=TRUE)
+pol <- polygons(x)
+
+# sample randomly from all circles
+samp1 <- spsample(pol, 1000, type='random', iter=25)
+
+# get unique cells
+cells <- cellFromXY(env, samp1)
+cells <- unique(cells)
+xy <- xyFromCell(env, cells)
 
 map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
+points(xy, cex=0.75, pch=20, col='blue')
 points(ck.all$Long, ck.all$Lat, col="red", pch=20)
+
+write.table(xy, file="Data/Ckilimanjari.bg.txt", quote=F, row.names = F, col.names = T)
+
 ```
 
 ## *C. campestris*
@@ -64,8 +109,33 @@ gbif.cc <- read.csv("Data/C.campestris_GBIF_JM.csv", header = T)
 gbif.cc <- gbif.cc %>% select(Lat,Long)
 
 cc.all <- rbind(cc, gbif.cc)
-nrow(cc.all)
+len.cc <- nrow(cc.all)
+
+write.table(cc.all, file="Data/Ccampestris.occ.txt", quote=F, row.names = F, col.names = T)
+
+## Sample background
+coordinates(cc.all) <- ~Long+Lat
+projection(cc.all) <- CRS('+proj=longlat +datum=WGS84')
+
+# circles with a radius of 50 km
+x <- circles(cc.all, d=300000, lonlat=TRUE)
+pol <- polygons(x)
+
+# sample randomly from all circles
+samp1 <- spsample(pol, 1000, type='random', iter=25)
+
+# get unique cells
+cells <- cellFromXY(env, samp1)
+cells <- unique(cells)
+xy <- xyFromCell(env, cells)
 
 map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"))
+points(xy, cex=0.75, pch=20, col='blue')
 points(cc.all$Long, cc.all$Lat, col="red", pch=20)
+
+write.table(xy, file="Data/Ccampestris.bg.txt", quote=F, row.names = F, col.names = T)
 ```
+
+## Methods Summary
+
+All occurrences for *C. reflexa* were from sampled localities (*n* = `r len.cr`). Sampled localities were combined with occurrences from GBIF for *C. campestris* (total *n* = `r len.cc`) and *C. kilimanjari* (total *n* = `r len.cc`).  Background points (*n*=1,000) were chosen from within a radius of 300 km of known occurrences.
