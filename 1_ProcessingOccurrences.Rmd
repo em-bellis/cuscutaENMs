@@ -27,15 +27,17 @@ data(worldMapEnv)
 ## Field data for Kenya collected by Runo lab
 ```{r}
 occ <- read.csv("Data/Cuscuta_georeferenced.csv")
-cc <- subset(occ, Cuscuta.Species=="C. campestris")[,1:2]
 cr <- subset(occ, Cuscuta.Species=="C. reflexa")[,1:2]
-ck <- subset(occ, Cuscuta.Species=="C. kilimanjari")[,1:2]
+
+occ <- read.csv("Data/Cuscuta_georeferenced_v2.csv") # updated 9/28 from Joel w/ East African Herbarium specimens
+cc <- subset(occ, Species=="C. campestris")[,1:2]
+ck <- subset(occ, Species=="C. kilimanjari")[,1:2]
 ```
 
 ## *C. reflexa*
 ```{r}
 # no African occurrences in GBIF
-len.cr <- nrow(cr)
+len.cr <- nrow(unique(cr))
 
 ## Sample background following https://rspatial.org/raster/sdm/3_sdm_absence-background.html#
 env <- raster("~/Desktop/Projects/StigaxSorghum/MacroecologyMS/env7.rs.tif")
@@ -45,7 +47,7 @@ write.table(cr, file="Data/Creflexa.occ.txt", quote=F, row.names = F, col.names 
 coordinates(cr) <- ~Long+Lat
 projection(cr) <- CRS('+proj=longlat +datum=WGS84')
 
-# circles with a radius of 50 km
+# circles with a radius of 300 km
 x <- circles(cr, d=300000, lonlat=TRUE)
 pol <- polygons(x)
 
@@ -72,10 +74,10 @@ write.table(xy, file="Data/Creflexa.bg.txt", quote=F, row.names = F, col.names =
 gbif.ck <- read.csv("Data/C.kilimanjari_GBIF_JM.csv", header = T)
 gbif.ck <- gbif.ck %>% select(Lat, Long)
 
-ck.all <- rbind(ck, gbif.ck)
+ck.all <- unique(rbind(ck, gbif.ck))
 write.table(ck.all, file="Data/Ckilimanjari.occ.txt", quote=F, row.names = F, col.names = T)
 
-len.ck <- nrow(ck.all)
+len.ck <- nrow(unique(ck.all))
 
 ## Sample background
 coordinates(ck.all) <- ~Long+Lat
@@ -108,8 +110,8 @@ write.table(xy, file="Data/Ckilimanjari.bg.txt", quote=F, row.names = F, col.nam
 gbif.cc <- read.csv("Data/C.campestris_GBIF_JM.csv", header = T)
 gbif.cc <- gbif.cc %>% select(Lat,Long)
 
-cc.all <- rbind(cc, gbif.cc)
-len.cc <- nrow(cc.all)
+cc.all <- unique(rbind(cc, gbif.cc))
+len.cc <- nrow(unique(cc.all))
 
 write.table(cc.all, file="Data/Ccampestris.occ.txt", quote=F, row.names = F, col.names = T)
 
@@ -138,4 +140,4 @@ write.table(xy, file="Data/Ccampestris.bg.txt", quote=F, row.names = F, col.name
 
 ## Methods Summary
 
-All occurrences for *C. reflexa* were from sampled localities (*n* = `r len.cr`). Sampled localities were combined with occurrences from GBIF for *C. campestris* (total *n* = `r len.cc`) and *C. kilimanjari* (total *n* = `r len.cc`).  Background points (*n*=1,000) were chosen from within a radius of 300 km of known occurrences.
+All occurrences for *C. reflexa* were from sampled localities (*n* = `r len.cr`). Sampled localities were combined with occurrences from GBIF for *C. campestris* (total *n* = `r len.cc`) and *C. kilimanjari* (total *n* = `r len.ck`).  Background points (*n*=1,000) were chosen from within a radius of 300 km of known occurrences.

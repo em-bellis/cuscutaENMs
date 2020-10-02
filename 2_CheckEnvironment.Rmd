@@ -9,14 +9,14 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Check for Correlation
-This is based on background points from C. kilimanjari
+## Description
+This step is done to check correlation among environmental variables used for ENMs. It is based on background points from *C. kilimanjari* which has the largest spatial extent.
 
 ```{r eval=T}
 library(Hmisc)
 library(raster)
 
-e <- extent(25,45,-10,15)
+e <- extent(10,60,-20,25)
 ```
 
 ```{r eval=F}
@@ -38,9 +38,22 @@ env17 <- crop(env17, e)
 env18 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_18.tif', header=T)
 env18 <- crop(env18, e)
 
-env <- stack(env1, env3, env5, env15, env17, env18)
+# fractional land cover maps for % tree, % shrub, and % grass from https://zenodo.org/record/3939050#.X3Iaui2ZM8Y 
+vegs <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Shrub-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegs <- crop(vegs, e)
+vegs <- resample(vegs, env18, method='bilinear')
 
-randoz <- read.table('Ckilimanjari.bg.txt', header=T)
+vegt <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Tree-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegt <- crop(vegt, e)
+vegt <- resample(vegt, env18, method='bilinear')
+
+vegg <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Grass-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegg <- crop(vegg, e)
+vegg <- resample(vegg, env18, method='bilinear')
+
+env <- stack(env1, env3, env5, env15, env17, env18, vegs, vegg, vegt)
+
+randoz <- read.table('Data/Ckilimanjari.bg.txt', header=T)
 bioclims <- extract(env, randoz)
 write.table(bioclims, file='bioclims.txt',row.names=F, quote=F)
 ```
@@ -48,7 +61,7 @@ write.table(bioclims, file='bioclims.txt',row.names=F, quote=F)
 ```{r}
 # correlations 
 tmp <- read.table("Data/bioclims.txt", header=T)
-pairs(tmp[,1:6], cex=0.05)
+pairs(tmp[,1:8], cex=0.05)
 rcorr(as.matrix(tmp))
 
 ```

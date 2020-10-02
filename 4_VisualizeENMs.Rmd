@@ -1,0 +1,316 @@
+---
+title: "Visualize ENMs"
+author: "EBellis"
+date: "9/2/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=F}
+library(raster)
+library(maps)
+library(RColorBrewer)
+library(spData)
+library(sf)
+```
+
+## Coffee & Tea 
+These are from https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FSSKBW
+
+Citation:
+International Food Policy Research Institute, 2020, "Spatially-Disaggregated Crop Production Statistics Data in Africa South of the Saharan for 2017", https://doi.org/10.7910/DVN/FSSKBW, Harvard Dataverse, V1
+
+Production is measured in metric tons.
+
+# Import coffee/tea layers
+```{r echo=F}
+acof <- raster('~/Downloads/dataverse_files/spam2017v1r1_ssa_prod.geotiff/spam2017V1r1_SSA_gr_P_ACOF_A.tif')
+rcof <- raster('~/Downloads/dataverse_files/spam2017v1r1_ssa_prod.geotiff/spam2017V1r1_SSA_gr_P_RCOF_A.tif')
+cof <- acof+rcof
+
+coff_ext <- calc(cof, fun=function(x){ x[x < 1] <- NA; return(x)})
+
+teas <- raster('~/Downloads/dataverse_files/spam2017v1r1_ssa_prod.geotiff/spam2017V1r1_SSA_gr_P_TEAS_A.tif')
+tea_ext <- calc(teas, fun=function(x){ x[x < 1] <- NA; return(x)})
+
+```
+
+# Create a mask for coffee/tea growing areas
+```{r echo=F}
+ck <- raster("Models/ck.tif")
+
+#create a mask for coffee and tea growing areas
+coff_ext <- crop(coff_ext, ck)
+tea_ext <- crop(tea_ext, ck)
+coff_ext2 <- resample(coff_ext, ck)
+tea_ext2 <- resample(tea_ext, ck)
+
+```
+
+# crop/mask layers for C. kilimanjari
+```{r}
+library(tmap)
+library(tmaptools)
+
+sub_world <- subset(world, iso_a2=="KE"|iso_a2=="TZ"|iso_a2=="ET"|iso_a2=="UG"|iso_a2=="RW"|iso_a2=="BI")
+sub_world_sp <- as(sub_world, 'Spatial')
+
+ck.coff <- raster::mask(ck, coff_ext2)
+ck.tea <- raster::mask(ck, tea_ext2)
+
+ck.coff <- crop(ck.coff, sub_world_sp)
+ck.tea <- crop(ck.tea, sub_world_sp)
+ck.all <- crop(ck, sub_world_sp)
+
+ck.coff <- raster::mask(ck.coff, sub_world_sp)
+ck.tea <- raster::mask(ck.tea, sub_world_sp)
+ck.all <- raster::mask(ck.all, sub_world_sp)
+
+occ <- unique(read.table('Data/Ckilimanjari.occ.txt', header=T))
+coordinates(occ)<- ~Long + Lat
+projection(occ) <- CRS('+proj=longlat +datum=WGS84')
+
+```
+
+# plot for C. kilimanjari; no legend/inset (will be in middle row and middle column)
+```{r}
+sg <- bb_poly(sub_world_sp)
+xy <- st_bbox(sg)
+asp <- (xy$ymax - xy$ymin)/(xy$xmax - xy$xmin)
+
+ck.tea.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(ck.tea) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(ck.tea.map,filename="Results/CK_Tea.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+ck.coff.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(ck.coff) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(ck.coff.map,filename="Results/CK_Coff.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+ck.all.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(ck.all) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(ck.all.map,filename="Results/CK_All.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+```
+
+# crop/mask layers for C. reflexa
+```{r}
+cr <- raster("Models/cr.tif")
+
+cr.coff <- raster::mask(cr, coff_ext2)
+cr.tea <- raster::mask(cr, tea_ext2)
+
+cr.coff <- crop(cr.coff, sub_world_sp)
+cr.tea <- crop(cr.tea, sub_world_sp)
+cr.all <- crop(cr, sub_world_sp)
+
+cr.coff <- raster::mask(cr.coff, sub_world_sp)
+cr.tea <- raster::mask(cr.tea, sub_world_sp)
+cr.all <- raster::mask(cr.all, sub_world_sp)
+
+occ <- unique(read.table('Data/Creflexa.occ.txt', header=T))
+coordinates(occ)<- ~Long + Lat
+projection(occ) <- CRS('+proj=longlat +datum=WGS84')
+
+```
+
+# plot for C. reflexa; legend on tea map
+```{r}
+cr.tea.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cr.tea) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE) + tm_scale_bar(breaks=c(0,250,500), text.size=1, position=c(0.61,'bottom'))
+
+tmap_save(cr.tea.map,filename="Results/CR_Tea.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+cr.coff.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cr.coff) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(cr.coff.map,filename="Results/CR_Coff.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+cr.all.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cr.all) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(cr.all.map,filename="Results/CR_All.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+```
+
+## with inset 
+```{r}
+library(dplyr)
+library(grid)
+
+xy <- st_bbox(world %>%
+  filter(continent == "Africa"))
+asp2 <- (xy$xmax - xy$xmin)/(xy$ymax - xy$ymin)
+
+#inset.map <-
+africa_inset <- world %>%
+  filter(continent == "Africa") %>%
+  tm_shape() +
+    tm_borders() + tm_fill() +
+  tm_shape(sub_world_sp) +
+    tm_fill(col="tomato4") + tm_borders() +
+  tm_layout(inner.margins = c(0.04,0.04,0.04,0.04), outer.margins=c(0,0,0,0))
+
+africa_inset
+```
+
+# crop/mask layers for C. campestris
+```{r}
+cc <- raster("Models/cc.tif")
+
+cc.coff <- raster::mask(cc, coff_ext2)
+cc.tea <- raster::mask(cc, tea_ext2)
+
+cc.coff <- crop(cc.coff, sub_world_sp)
+cc.tea <- crop(cc.tea, sub_world_sp)
+cc.all <- crop(cc, sub_world_sp)
+
+cc.coff <- raster::mask(cc.coff, sub_world_sp)
+cc.tea <- raster::mask(cc.tea, sub_world_sp)
+cc.all <- raster::mask(cc.all, sub_world_sp)
+
+occ <- unique(read.table('Data/Ccampestris.occ.txt', header=T))
+coordinates(occ)<- ~Long + Lat
+projection(occ) <- CRS('+proj=longlat +datum=WGS84')
+
+```
+
+# plot for C. campestris; legend/inset for tea map
+```{r}
+cc.tea.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cc.tea) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.outside=F, legend.text.size = 0.8,
+            legend.title.size=0.9,
+            legend.frame=TRUE, legend.position=c(0.985, 0.985),
+            legend.just = c("right", "top"), legend.width=-0.25,
+            legend.height=-0.4, outer.margins = c(0,0,0,0),
+            inner.margins = c(0,0,0,0))
+
+w <- 0.25
+h <- asp2 * w
+vp <- viewport(x=0.88, y=0.1, width = w, height=h, just=c("right", "bottom"))
+
+tmap_save(cc.tea.map,filename="Results/CC_Tea.pdf",
+          dpi=600, insets_tm=africa_inset, insets_vp=vp,
+          height=asp*91, width=91, units="mm")
+
+cc.coff.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cc.coff) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(cc.coff.map,filename="Results/CC_Coff.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+
+cc.all.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(cc.all) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders() +
+tm_shape(occ) +
+  tm_bubbles(size=0.04, alpha=0.6) +
+tm_layout(legend.show = FALSE)
+
+tmap_save(cc.all.map,filename="Results/CC_All.pdf",
+          dpi=600,height=asp*91, width=91, units="mm")
+```
+
+## lim factor map for CR
+```{r}
+lim <- raster("Models/cr.lim.tif")
+cr.lim.map <- tm_shape(sub_world_sp) +
+  tm_borders() + 
+tm_shape(world) +
+  tm_fill() + 
+tm_shape(lim) +
+  tm_raster() + 
+tm_shape(world) +
+  tm_borders()
+
+plot(lim
+map(database="world", regions=c("Kenya","Tanzania","Ethiopia","Uganda","Rwanda","Burundi","Sudan","South Sudan","Eritrea","Somalia","Malawi"), add=T)  # 5 is bio18; 2 is bio3; 8 is tree cover
+```
+
+

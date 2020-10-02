@@ -1,0 +1,143 @@
+---
+title: "Running ENMs"
+author: "EBellis"
+date: "9/2/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+This document describes running of ENMs for the three species.
+
+```{r eval=T}
+options(java.parameters = "-Xmx100G")
+library(raster)
+library(ENMeval)
+e <- extent(10,60,-20,25)
+```
+
+```{r eval=F}
+env1 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_01.tif', header=T)
+env1 <- crop(env1, e)
+
+env3 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_03.tif', header=T)
+env3 <- crop(env3, e)
+
+env15 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_15.tif', header=T)
+env15 <- crop(env15, e)
+
+env17 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_17.tif', header=T)
+env17 <- crop(env17, e)
+
+env18 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_18.tif', header=T)
+env18 <- crop(env18, e)
+
+vegs <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Shrub-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegs <- crop(vegs, e)
+vegs <- resample(vegs, env18, method='bilinear')
+
+vegt <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Tree-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegt <- crop(vegt, e)
+vegt <- resample(vegt, env18, method='bilinear')
+
+vegg <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Grass-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegg <- crop(vegg, e)
+vegg <- resample(vegg, env18, method='bilinear')
+
+env <- stack(env1, env3, env15, env17, env18, vegs, vegt, vegg)
+```
+
+## *C. kilimanjari*
+```{r eval=F}
+randoz <- read.table('Data/Ckilimanjari.bg.txt', header=T)
+occ <- unique(read.table('Data/Ckilimanjari.occ.txt', header=T))
+ck.mod <- ENMevaluate(occ=cbind(occ$Long, occ$Lat), env=env, method='checkerboard2', parallel=F, bg.coords=randoz, algorithm='maxent.jar')
+
+# get best model
+ck.mod@results[which(ck.mod@results$delta.AICc==0),]
+# settings features rm train.AUC avg.test.AUC var.test.AUC avg.diff.AUC
+# 23   LQHP_2     LQHP  2    0.7722    0.7168032  0.006472585   0.06007559
+# 24  LQHPT_2    LQHPT  2    0.7722    0.7168032  0.006472585   0.06007559
+#    var.diff.AUC avg.test.orMTP var.test.orMTP avg.test.or10pct var.test.or10pct
+# 23   0.01111781     0.04429343    0.001035729        0.1719202       0.02130502
+# 24   0.01111781     0.04429343    0.001035729        0.1719202       0.02130502
+#        AICc delta.AICc     w.AIC parameters
+# 23 2292.707          0 0.4999223         18
+# 24 2292.707          0 0.4999223         18
+
+# permutation importances 
+aic.opt <- ck.mod@models[[23]]
+aic.opt@results
+# CHELSA_bio10_01.permutation.importance                                                           0.0000
+# CHELSA_bio10_03.permutation.importance                                                          47.6473
+# CHELSA_bio10_15.permutation.importance                                                          12.6562
+# CHELSA_bio10_17.permutation.importance                                                           2.7466
+# CHELSA_bio10_18.permutation.importance                                                           7.6568
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Grass.CoverFraction.layer_EPSG.4326.permutation.importance  25.8429
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Shrub.CoverFraction.layer_EPSG.4326.permutation.importance   0.0000
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Tree.CoverFraction.layer_EPSG.4326.permutation.importance    3.4503
+
+response(ck.mod@models[[23]])
+
+# save model and project to current environment
+save(ck.mod, file='ck.RDA')
+
+predict(aic.opt, env, filename = "ck.tif", format="GTiff", outputformat="logistic", overwrite=TRUE, progress='text')
+```
+
+## *C. reflexa*
+```{r eval=F}
+randoz <- read.table('Data/Creflexa.bg.txt', header=T)
+occ <- unique(read.table('Data/Creflexa.occ.txt', header=T)) #66
+cr.mod <- ENMevaluate(occ=cbind(occ$Long, occ$Lat), env=env, method='checkerboard2', parallel=F, bg.coords=randoz, algorithm='maxent.jar')
+
+# get best model
+# cr.mod@results[which(cr.mod@results$delta.AICc==0),]
+# settings features  rm train.AUC avg.test.AUC var.test.AUC avg.diff.AUC
+# 28  LQH_2.5      LQH 2.5      0.95    0.9254534 0.0006640319   0.02295074
+#    var.diff.AUC avg.test.orMTP var.test.orMTP avg.test.or10pct var.test.or10pct
+# 28 0.0008076543       0.015625   0.0009765625        0.1479167       0.01307292
+#        AICc delta.AICc     w.AIC parameters
+# 28 1680.123          0 0.9634367         23
+
+# CHELSA_bio10_01.permutation.importance                                                           0.0000
+# CHELSA_bio10_03.permutation.importance                                                          13.6868
+# CHELSA_bio10_15.permutation.importance                                                           0.5055
+# CHELSA_bio10_17.permutation.importance                                                           0.5302
+# CHELSA_bio10_18.permutation.importance                                                          58.9502
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Grass.CoverFraction.layer_EPSG.4326.permutation.importance  14.8993
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Shrub.CoverFraction.layer_EPSG.4326.permutation.importance   0.8413
+# PROBAV_LC100_global_v3.0.1_2019.nrt_Tree.CoverFraction.layer_EPSG.4326.permutation.importance   10.5868
+
+```
+
+## *C. campestris*
+
+```{r}
+# settings features rm train.AUC avg.test.AUC var.test.AUC avg.diff.AUC
+# 45      H_4        H  4    0.8227    0.7584497   0.05184338   0.09972872
+#    var.diff.AUC avg.test.orMTP var.test.orMTP avg.test.or10pct var.test.or10pct
+# 45   0.04318858     0.08522727     0.01390324        0.1931818       0.05836777
+#        AICc delta.AICc     w.AIC parameters
+# 45 1195.505          0 0.8055264          8
+# 
+# CHELSA_bio10_01.permutation.importance                                              43.3709
+# CHELSA_bio10_03.permutation.importance                                               2.6373
+# CHELSA_bio10_15.permutation.importance                                               0.0000
+# CHELSA_bio10_17.permutation.importance                                              49.1009
+# CHELSA_bio10_18.permutation.importance                                               4.8909
+
+```
+
+
+
+## Methods Summary
+ENMs were based on the Maxent algorithm[cite]. Models were tuned and evaluated with ENMeval[cite] using the checkerboard2 method for data partitioning.  The best models had test set AUC of X (C. kilimanjari), X (C. reflexa), or X (C. campestris).
+
+```{r}
+citation('ENMeval')
+```
+
