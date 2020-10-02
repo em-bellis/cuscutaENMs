@@ -1,0 +1,71 @@
+---
+title: "Environmental Layers"
+author: "EBellis"
+date: "9/1/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+This step is done to check correlation among environmental variables used for ENMs. It is based on background points from *C. kilimanjari* which has the largest spatial extent.
+
+```{r eval=T}
+library(Hmisc)
+library(raster)
+
+e <- extent(10,60,-20,25)
+```
+
+```{r eval=F}
+env1 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_01.tif', header=T)
+env1 <- crop(env1, e)
+
+env3 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_03.tif', header=T)
+env3 <- crop(env3, e)
+
+env5 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_05.tif', header=T)
+env5 <- crop(env5, e)
+
+env15 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_15.tif', header=T)
+env15 <- crop(env15, e)
+
+env17 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_17.tif', header=T)
+env17 <- crop(env17, e)
+
+env18 <- raster('~/scratch/data/env/CHELSA/CHELSA_bio10_18.tif', header=T)
+env18 <- crop(env18, e)
+
+# fractional land cover maps for % tree, % shrub, and % grass from https://zenodo.org/record/3939050#.X3Iaui2ZM8Y 
+vegs <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Shrub-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegs <- crop(vegs, e)
+vegs <- resample(vegs, env18, method='bilinear')
+
+vegt <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Tree-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegt <- crop(vegt, e)
+vegt <- resample(vegt, env18, method='bilinear')
+
+vegg <- raster('~/scratch/data/env/Copernicus/PROBAV_LC100_global_v3.0.1_2019-nrt_Grass-CoverFraction-layer_EPSG-4326.tif', header=T)
+vegg <- crop(vegg, e)
+vegg <- resample(vegg, env18, method='bilinear')
+
+env <- stack(env1, env3, env5, env15, env17, env18, vegs, vegg, vegt)
+
+randoz <- read.table('Data/Ckilimanjari.bg.txt', header=T)
+bioclims <- extract(env, randoz)
+write.table(bioclims, file='bioclims.txt',row.names=F, quote=F)
+```
+
+```{r}
+# correlations 
+tmp <- read.table("Data/bioclims.txt", header=T)
+pairs(tmp[,1:8], cex=0.05)
+rcorr(as.matrix(tmp))
+
+```
+
+
+## Methods Summary
+Species distribution models were based on five bioclimatic variables: annual mean temperature (bio1),  isothermality (bio3), precipitation seasonality (bio15), precipitation of the driest quarter (bio17), and precipitation of the warmest quarter (bio18). Four of the variables (bio1, bio3, bio15, and bio18) were previously reported as important variables for species distribution models for [*C. chinensis*] (https://bmcecol.biomedcentral.com/track/pdf/10.1186/s12898-020-00295-6) and the fifth (bio17) had high feature importance in prelimninary analyses. Bioclimatic data were obtained from the [CHELSA dataset](https://www.nature.com/articles/sdata2017122). All variables had Pearson's correlation coefficients less than 0.8 when assessed across the background extent of the study.     
